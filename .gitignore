@@ -1,0 +1,23 @@
+# Dados brutos coletados
+data/raw/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Testes / cache
+.pytest_cache/
+.ruff_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE / SO
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

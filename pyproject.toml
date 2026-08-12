@@ -1,0 +1,29 @@
+[project]
+name = "internacional-2025-dashboard"
+version = "0.1.0"
+description = "Análise do desempenho do Sport Club Internacional no Brasileirão Série A 2025"
+authors = [{ name = "jmoreira21" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests (>=2.32,<3.0)",
+    "beautifulsoup4 (>=4.12,<5.0)",
+    "lxml (>=5.0,<7.0)",
+    "pandas (>=2.2,<4.0)",
+    "streamlit (>=1.40,<2.0)",
+    "plotly (>=5.24,<7.0)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
