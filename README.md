@@ -28,8 +28,12 @@ poetry install
 ```bash
 poetry run python -m src.scraper.transfermarkt   # jogo a jogo -> data/raw/*.csv
 poetry run python -m src.scraper.wikipedia       # classificação, técnicos -> data/raw/*.csv
+poetry run python -m src.scraper.fbref_parser    # xG e finalizações (exige HTML salvo)
 poetry run pytest -v                             # testes de reconciliação
 ```
+
+Ambos os coletores HTTP guardam o HTML baixado em `data/raw/` e aceitam
+`--offline`, que reprocessa a cópia local sem repetir a requisição.
 
 ## Fontes de dados
 
@@ -51,9 +55,19 @@ Para habilitar as análises de xG e finalização, salve as páginas manualmente
    (o desafio do Cloudflare passa normalmente na navegação comum).
 2. Salve a página como HTML em `data/raw/fbref/`.
 3. Repita para as seções *Scores & Fixtures*, *Shooting*, *Passing* e *Possession*.
+4. Confira o que foi reconhecido:
 
-O módulo `src/scraper/fbref_parser.py` lê esses arquivos locais. Enquanto o diretório estiver
-vazio, as análises de xG ficam inativas e o dashboard exibe um aviso — sem quebrar.
+   ```bash
+   poetry run python -m src.scraper.fbref_parser --list
+   ```
+
+O nome dos arquivos não importa: as tabelas são identificadas pelo `id` e as colunas pelo
+atributo `data-stat`, que é estável entre as versões em português e inglês da página. O parser
+também lê as tabelas que o FBref esconde dentro de comentários HTML — sem isso, só a primeira
+tabela de cada página seria visível.
+
+Enquanto o diretório estiver vazio, as análises de xG ficam inativas e o dashboard exibe um
+aviso — sem quebrar.
 
 > **Nota sobre o mapa de chutes:** o FBref **não publica coordenadas x/y** de finalizações. A
 > tabela de chutes traz minuto, jogador, xG, PSxG, distância, parte do corpo e desfecho. Por isso o
