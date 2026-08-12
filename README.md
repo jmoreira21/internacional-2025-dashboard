@@ -29,6 +29,7 @@ poetry install
 poetry run python -m src.scraper.transfermarkt   # jogo a jogo -> data/raw/*.csv
 poetry run python -m src.scraper.wikipedia       # classificação, técnicos -> data/raw/*.csv
 poetry run python -m src.scraper.fbref_parser    # xG e finalizações (exige HTML salvo)
+poetry run python -m src.etl.validacao           # relatório de qualidade dos dados
 poetry run pytest -v                             # testes de reconciliação
 ```
 
