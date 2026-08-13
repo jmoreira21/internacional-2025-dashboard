@@ -31,6 +31,7 @@ poetry run python -m src.scraper.wikipedia       # classificação, técnicos ->
 poetry run python -m src.scraper.fotmob          # xG e mapa de chutes -> data/raw/*.csv
 poetry run python -m src.scraper.fbref_parser    # stats por jogador (exige HTML salvo)
 poetry run python -m src.etl.validacao           # relatório de qualidade dos dados
+poetry run python -m src.db.carga                # monta o SQLite a partir dos CSVs
 poetry run pytest -v                             # testes de reconciliação
 ```
 
@@ -93,14 +94,42 @@ para análise por partida, e a **tabela da temporada** apenas para comparar com 
 > **Gols contra:** o FotMob os marca como `eventType='Goal'` no time de quem chutou, com
 > `isOwnGoal=True` e sem xG. Sem tratar isso, o Inter apareceria com 47 gols em vez de 44.
 
+## Banco de dados
+
+`data/internacional_2025.db` — SQLite, sem servidor nem credenciais. **Não é versionado**: é
+reconstruído inteiro a partir de `data/raw/` com `python -m src.db.carga`, e rodar a carga duas
+vezes produz exatamente o mesmo conteúdo.
+
+| Tabela | Linhas | Conteúdo |
+|---|---|---|
+| `times` | 20 | dimensão com os ids de cada fonte |
+| `partidas` | 380 | campeonato inteiro |
+| `classificacao` | 20 | tabela final |
+| `posicoes_rodada` | 760 | posição de cada time em cada rodada |
+| `tecnicos` | 3 | períodos de comando no Inter |
+| `xg_times` | 20 | xG e pontos esperados da temporada |
+| `chutes` | 987 | finalizações com coordenadas e xG |
+| `jogadores` | 47 | estatísticas individuais do FBref |
+
+Views prontas: `vw_jogos_inter`, `vw_xg_por_rodada`, `vw_desempenho_tecnico`.
+
+Cada fonte escreve o nome do clube de um jeito — "Atlético-MG", "Atlético Mineiro", "Atletico MG" —
+e apenas **2 dos 20** têm grafia idêntica nas três. O cruzamento usa uma chave normalizada (sem
+acentos nem sufixos de estado ou patrocínio) e falha explicitamente se algum clube não casar. O
+mapeamento foi verificado comparando gols marcados e sofridos time a time nas três fontes: os 20
+batem.
+
+As chaves estrangeiras são declaradas **e ativadas** via `PRAGMA foreign_keys`, que no SQLite vale
+por conexão — sem ele seriam apenas documentação.
+
 ## Estrutura
 
 ```
 src/
-├── scraper/      # coleta (HTTP) e parsing (arquivos locais do FBref)
-├── etl/          # limpeza e normalização
-├── db/           # schema e carga no SQLite
+├── scraper/      # transfermarkt, wikipedia, fotmob (HTTP) e fbref_parser (local)
+├── etl/          # times (dimensão cruzada), validacao (relatório de qualidade)
+├── db/           # schema (DDL + views) e carga
 └── dashboard/    # app Streamlit
 data/raw/         # dados brutos (no .gitignore)
-tests/            # testes de parsing e reconciliação
+tests/            # testes de parsing, reconciliação e schema
 ```
