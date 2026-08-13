@@ -28,7 +28,8 @@ poetry install
 ```bash
 poetry run python -m src.scraper.transfermarkt   # jogo a jogo -> data/raw/*.csv
 poetry run python -m src.scraper.wikipedia       # classificação, técnicos -> data/raw/*.csv
-poetry run python -m src.scraper.fbref_parser    # xG e finalizações (exige HTML salvo)
+poetry run python -m src.scraper.fotmob          # xG e mapa de chutes -> data/raw/*.csv
+poetry run python -m src.scraper.fbref_parser    # stats por jogador (exige HTML salvo)
 poetry run python -m src.etl.validacao           # relatório de qualidade dos dados
 poetry run pytest -v                             # testes de reconciliação
 ```
@@ -42,9 +43,19 @@ Ambos os coletores HTTP guardam o HTML baixado em `data/raw/` e aceitam
 |---|---|---|
 | Transfermarkt | automático | 380 partidas: rodada, data, mando, placar, posição na tabela |
 | Wikipédia (API MediaWiki) | automático | Classificação final, posição por rodada, mudanças de técnicos, artilharia |
-| FBref | **manual** (ver abaixo) | xG, chutes, PSxG, distância, posse, passes |
+| FotMob (API pública) | automático | xG por chute, coordenadas, xGOT, xG da temporada dos 20 times |
+| FBref | **manual** (ver abaixo) | Estatísticas por jogador: gols, assistências, chutes, minutos |
 
-### ⚠️ O FBref exige salvamento manual
+### ⚠️ O FBref não publica xG do Brasileirão
+
+Ao contrário do que se poderia esperar, **nenhuma tabela do FBref para a Série A traz xG** — nem
+distância de chute, nem as tabelas de passes e posse de bola. O FBref só disponibiliza dados
+avançados para competições selecionadas, e o Brasileirão não está entre elas.
+
+Por isso o xG e o mapa de chutes vêm do **FotMob**, cuja API pública traz shotmap com coordenadas
+`x`/`y`, xG e xGOT por finalização. Do FBref aproveitamos as estatísticas por jogador.
+
+### O FBref exige salvamento manual
 
 O FBref está atrás de um **desafio JavaScript do Cloudflare**. Requisições com `requests` recebem
 HTTP **403** com a página `"Just a moment..."` — inclusive em `/robots.txt` e através de proxies de
@@ -55,8 +66,7 @@ Para habilitar as análises de xG e finalização, salve as páginas manualmente
 1. Abra <https://fbref.com/pt/equipes/6f7e1f03/Internacional-Estatisticas> no navegador
    (o desafio do Cloudflare passa normalmente na navegação comum).
 2. Salve a página como HTML em `data/raw/fbref/`.
-3. Repita para as seções *Scores & Fixtures*, *Shooting*, *Passing* e *Possession*.
-4. Confira o que foi reconhecido:
+3. Confira o que foi reconhecido:
 
    ```bash
    poetry run python -m src.scraper.fbref_parser --list
@@ -67,12 +77,21 @@ atributo `data-stat`, que é estável entre as versões em português e inglês 
 também lê as tabelas que o FBref esconde dentro de comentários HTML — sem isso, só a primeira
 tabela de cada página seria visível.
 
-Enquanto o diretório estiver vazio, as análises de xG ficam inativas e o dashboard exibe um
-aviso — sem quebrar.
+Enquanto o diretório estiver vazio, as análises por jogador ficam inativas e o dashboard exibe um
+aviso — sem quebrar. O xG não depende disso: vem do FotMob.
 
-> **Nota sobre o mapa de chutes:** o FBref **não publica coordenadas x/y** de finalizações. A
-> tabela de chutes traz minuto, jogador, xG, PSxG, distância, parte do corpo e desfecho. Por isso o
-> "mapa de chutes" é implementado como um gráfico **distância × xG**, colorido por desfecho.
+### Qual xG usar
+
+As duas agregações do próprio FotMob não batem exatamente. Somando os chutes do Inter chega-se a
+**55,2 xG** a favor e **46,7** contra, enquanto a tabela da temporada traz **54,63** e **43,74** —
+~1% de diferença no ataque e ~7% na defesa, que não se explica por pênaltis, chutes bloqueados nem
+gols contra.
+
+Como os dados de chute são auditáveis e reconciliam com o placar (44:57), use a **soma do shotmap**
+para análise por partida, e a **tabela da temporada** apenas para comparar com os outros times.
+
+> **Gols contra:** o FotMob os marca como `eventType='Goal'` no time de quem chutou, com
+> `isOwnGoal=True` e sem xG. Sem tratar isso, o Inter apareceria com 47 gols em vez de 44.
 
 ## Estrutura
 

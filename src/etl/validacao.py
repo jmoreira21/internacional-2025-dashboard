@@ -37,6 +37,13 @@ ARQUIVOS = {
     "mudancas": "brasileirao_2025_mudancas_tecnicos.csv",
 }
 
+# Coletados do FotMob; ausentes até rodar `python -m src.scraper.fotmob`.
+ARQUIVOS_XG = {
+    "xg_tabela": "brasileirao_2025_xg_tabela.csv",
+    "chutes": "inter_2025_chutes.csv",
+    "xg_partida": "inter_2025_xg_por_partida.csv",
+}
+
 
 @dataclass
 class Check:
@@ -65,10 +72,14 @@ def carregar() -> dict[str, pd.DataFrame]:
             file=sys.stderr,
         )
         raise SystemExit(1)
-    return {
+    dados = {
         nome: pd.read_csv(RAW / arq, encoding="utf-8-sig")
         for nome, arq in ARQUIVOS.items()
     }
+    for nome, arq in ARQUIVOS_XG.items():
+        if (RAW / arq).exists():
+            dados[nome] = pd.read_csv(RAW / arq, encoding="utf-8-sig")
+    return dados
 
 
 def checar_integridade(d: dict[str, pd.DataFrame]) -> list[Check]:
@@ -209,6 +220,72 @@ def resumo_do_inter(d: dict[str, pd.DataFrame]) -> None:
         print("  (nenhum)")
 
 
+def checar_xg(d: dict[str, pd.DataFrame]) -> list[Check]:
+    """Checagens do FotMob; lista vazia se o coletor de xG ainda não rodou."""
+    if "chutes" not in d:
+        return []
+
+    chutes, por_partida, tabela = d["chutes"], d["xg_partida"], d["xg_tabela"]
+    do_inter = chutes.do_internacional
+
+    marcados = int((do_inter & (chutes.desfecho == "gol")).sum())
+    sofridos = int(
+        ((~do_inter) & (chutes.desfecho == "gol")).sum()
+        + (do_inter & (chutes.desfecho == "gol contra")).sum()
+    )
+    oficial = d["classificacao"].query("equipe == @TEAM").iloc[0]
+
+    return [
+        Check("38 partidas com xG", len(por_partida) == TOTAL_ROUNDS, f"{len(por_partida)}"),
+        Check("todas as rodadas com shotmap", chutes.rodada.nunique() == TOTAL_ROUNDS),
+        Check("tabela de xG com 20 times", len(tabela) == TOTAL_TEAMS),
+        Check(
+            "gols do shotmap batem com o placar",
+            (marcados, sofridos) == (int(oficial.gols_pro), int(oficial.gols_contra)),
+            f"{marcados}:{sofridos} vs {int(oficial.gols_pro)}:{int(oficial.gols_contra)}",
+        ),
+        Check(
+            "coordenadas presentes em todos os chutes",
+            not chutes[["x", "y"]].isna().any().any(),
+        ),
+        Check(
+            "só gols contra ficam sem xG",
+            int(chutes.xg.isna().sum()) == int(chutes.gol_contra.sum()),
+            f"{int(chutes.xg.isna().sum())} sem xG",
+        ),
+    ]
+
+
+def resumo_xg(d: dict[str, pd.DataFrame]) -> None:
+    if "chutes" not in d:
+        return
+
+    tabela, chutes = d["xg_tabela"], d["chutes"]
+    inter = tabela.query("equipe == @TEAM").iloc[0]
+
+    _titulo("EFICIÊNCIA (xG do FotMob)")
+    print(f"  Pontos      {inter.pontos:>3}  vs {inter.pontos_esperados:>5.1f} esperados  "
+          f"({inter.pontos - inter.pontos_esperados:+.1f})")
+    print(f"  Gols feitos {inter.gols_pro:>3}  vs {inter.xg:>5.1f} xG         "
+          f"({inter.eficiencia_ataque:+.1f})")
+    print(f"  Gols sofr.  {inter.gols_contra:>3}  vs {inter.xg_contra:>5.1f} xG contra   "
+          f"({inter.eficiencia_defesa:+.1f})")
+
+    pior_ataque = tabela.nsmallest(1, "eficiencia_ataque").iloc[0]
+    pior_defesa = tabela.nlargest(1, "eficiencia_defesa").iloc[0]
+    print(f"\n  Pior finalização da liga: {pior_ataque.equipe} ({pior_ataque.eficiencia_ataque:+.1f})")
+    print(f"  Pior defesa vs esperado:  {pior_defesa.equipe} ({pior_defesa.eficiencia_defesa:+.1f})")
+
+    do_inter = chutes[chutes.do_internacional]
+    gols = do_inter[do_inter.desfecho == "gol"]
+    print(f"\n  {len(do_inter)} chutes, {do_inter.xg.sum():.1f} xG, {len(gols)} gols")
+    print(f"  dentro da área: {int(do_inter.dentro_area.sum())} chutes "
+          f"({do_inter[do_inter.dentro_area].xg.sum():.1f} xG)")
+    print("  por situação: " + ", ".join(
+        f"{situacao} {n}" for situacao, n in do_inter.situacao.value_counts().head(4).items()
+    ))
+
+
 def status_fbref() -> None:
     _titulo("FBREF (coleta manual)")
     if fbref_parser.is_available():
@@ -244,17 +321,24 @@ def main() -> int:
     for check in reconciliacao:
         print(check.render())
 
+    xg = checar_xg(dados)
+    if xg:
+        _titulo("DADOS DE xG (FotMob)")
+        for check in xg:
+            print(check.render())
+
     resumo_do_inter(dados)
+    resumo_xg(dados)
     status_fbref()
 
-    falhas = [c for c in checks + reconciliacao if not c.ok]
+    falhas = [c for c in checks + reconciliacao + xg if not c.ok]
     _titulo("RESULTADO")
     if falhas:
         print(f"  {len(falhas)} checagem(ns) falharam:")
         for check in falhas:
             print(f"    - {check.nome}")
         return 1
-    print(f"  Todas as {len(checks) + len(reconciliacao)} checagens passaram.")
+    print(f"  Todas as {len(checks) + len(reconciliacao) + len(xg)} checagens passaram.")
     return 0
 
 
