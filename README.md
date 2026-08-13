@@ -94,6 +94,25 @@ para análise por partida, e a **tabela da temporada** apenas para comparar com 
 > **Gols contra:** o FotMob os marca como `eventType='Goal'` no time de quem chutou, com
 > `isOwnGoal=True` e sem xG. Sem tratar isso, o Inter apareceria com 47 gols em vez de 44.
 
+## Dashboard
+
+```bash
+poetry run streamlit run src/dashboard/app.py
+```
+
+Sete análises, uma por aba: briga contra o Z4, gols por rodada, xG e eficiência, os três
+técnicos, mapa de chutes, dependência ofensiva e comparação com os rivais da parte de baixo.
+Cada uma traz um "Ver dados" com a tabela por trás do gráfico.
+
+As cores saem de uma paleta validada para daltonismo (`src/dashboard/tema.py`): os três primeiros
+slots passam em todos os pares, o que é exigência das formas de dispersão, e quatro passam em pares
+adjacentes. Categorias nominais — técnicos, jogadores, situações de jogo — recebem **uma cor só**,
+nunca um gradiente por valor, que duplicaria o comprimento da barra na tonalidade. Nenhum gráfico
+usa dois eixos y.
+
+O tema é claro e fixo (`.streamlit/config.toml`), porque as cores foram validadas contra essa
+superfície.
+
 ## Banco de dados
 
 `data/internacional_2025.db` — SQLite, sem servidor nem credenciais. **Não é versionado**: é
