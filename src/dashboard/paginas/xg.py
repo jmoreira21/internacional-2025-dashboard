@@ -5,11 +5,11 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 
 def render() -> None:
-    st.header("xG e eficiência")
+    estilo.rotulo_secao("xG e eficiência")
 
     por_rodada = dados.xg_por_rodada().sort_values("rodada").copy()
     times = dados.xg_dos_times()
@@ -96,7 +96,7 @@ def _acumulado(por_rodada) -> go.Figure:
 def _por_rodada(por_rodada) -> go.Figure:
     """Diferença entre gols e xG a cada rodada, divergente em torno de zero."""
     diferenca = por_rodada.gols_pro - por_rodada.xg_pro
-    cores = [tema.SERIE_1 if valor >= 0 else tema.CRITICO for valor in diferenca]
+    cores = [tema.SERIE_1 if valor >= 0 else tema.SERIE_2 for valor in diferenca]
 
     figura = go.Figure(
         go.Bar(

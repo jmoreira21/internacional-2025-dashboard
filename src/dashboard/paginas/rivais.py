@@ -5,14 +5,14 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 Z4_INICIO = 17
 PARTE_DE_BAIXO = 14
 
 
 def render() -> None:
-    st.header("Inter e os rivais da parte de baixo")
+    estilo.rotulo_secao("Inter e os rivais da parte de baixo")
 
     times = dados.xg_dos_times()
     inter = times.query("sigla == 'INT'").iloc[0]

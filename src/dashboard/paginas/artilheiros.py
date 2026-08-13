@@ -5,13 +5,13 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 QUANTOS_MOSTRAR = 12
 
 
 def render() -> None:
-    st.header("Dependência ofensiva")
+    estilo.rotulo_secao("Dependência ofensiva")
 
     if not dados.tem_jogadores():
         st.info(
@@ -79,7 +79,7 @@ def _gols_por_jogador(elenco, destaque: str) -> go.Figure:
 
     for coluna, cor, rotulo in (
         ("gols", tema.SERIE_1, "Gols"),
-        ("assistencias", tema.SERIE_3, "Assistências"),
+        ("assistencias", tema.SERIE_2, "Assistências"),
     ):
         if coluna == "gols":
             figura = go.Figure()

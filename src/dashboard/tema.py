@@ -1,72 +1,70 @@
-"""Paleta e chrome dos gráficos.
+"""Paleta e chrome dos gráficos — tema escuro com o vermelho do Internacional.
 
-As cores vêm de uma paleta validada para daltonismo: os três primeiros slots
-passam em todos os pares (necessário para dispersão e mapa de chutes) e quatro
-slots passam em pares adjacentes (linhas e barras). Slots além disso não são
-gerados — quando há mais séries, o gráfico vira ênfase (uma série colorida, o
-resto em cinza) ou vira tabela.
+O vermelho do clube é o acento da interface e a cor da série principal. O
+segundo slot é um azul profundo, usado para o que o adversário fez (gols
+sofridos, xG contra) e como polo oposto nas barras divergentes.
 
-Regras que os gráficos deste app seguem:
+A paleta foi validada contra a superfície escura dos cards (`#141416`) no modo
+`--pairs all`, que é a exigência das formas de dispersão: banda de luminosidade,
+piso de croma, separação para daltonismo e contraste, todos passando. Vale
+registrar o que **não** entrou: vermelho + verde mede ΔE 1,8 em deuteranopia —
+seriam indistinguíveis para boa parte dos leitores.
+
+Regras que os gráficos seguem:
 
 * uma escala por eixo — nunca dois eixos y no mesmo gráfico;
 * a cor acompanha a entidade, não a posição no ranking;
 * categorias nominais (técnicos, jogadores) recebem uma cor só, nunca um
-  gradiente por valor, que duplicaria o comprimento da barra na tonalidade;
-* verde/vermelho de status são reservados a estado (Z4, rebaixamento) e nunca
-  usados como "série 3", e sempre acompanhados de rótulo.
+  gradiente por valor;
+* séries além de duas viram ênfase (uma em cor, o resto recuado) ou tabela.
 """
 
 from __future__ import annotations
 
-# Categóricas — ordem fixa. Os 3 primeiros validam em todos os pares.
-SERIE_1 = "#2a78d6"   # azul
-SERIE_2 = "#eb6834"   # laranja
-SERIE_3 = "#1baf7a"   # aqua
-SERIE_4 = "#eda100"   # amarelo (só formas adjacentes: linha, barra)
+# --- categóricas (validadas em all-pairs contra #141416) ---------------------
+SERIE_1 = "#e5484d"   # vermelho do clube — o Inter, o que foi feito
+SERIE_2 = "#0284c7"   # azul profundo — o adversário, o que foi sofrido
 
-# Status — reservados para estado, sempre com rótulo junto.
-CRITICO = "#d03b3b"
-ATENCAO = "#fab219"
-BOM = "#0ca30c"
+# --- superfícies e tinta -----------------------------------------------------
+PAGINA = "#0a0a0b"
+SUPERFICIE = "#141416"
+BORDA = "rgba(255, 255, 255, 0.07)"
 
-# Chrome
-SUPERFICIE = "#fcfcfb"
-TINTA = "#0b0b0b"
-TINTA_2 = "#52514e"
-MUDO = "#898781"
-GRADE = "#e1e0d9"
-EIXO = "#c3c2b7"
+TINTA = "#f5f5f4"
+TINTA_2 = "#a1a1a6"
+MUDO = "#6b6b70"
+GRADE = "#232326"
+EIXO = "#2e2e33"
 
-# Cinza de deênfase, para a forma "ênfase": uma série em cor, o resto recuado.
-NEUTRO = "#c3c2b7"
+# Cinza de deênfase para a forma "ênfase": o contexto recua, o assunto fica.
+NEUTRO = "#3f3f45"
 
 FONTE = 'system-ui, -apple-system, "Segoe UI", sans-serif'
 
 
 def layout_base(altura: int = 380, legenda: bool = True, **extra) -> dict:
-    """Chrome padrão: grade fina, eixos recuados, sem moldura.
-
-    `legenda=False` encolhe a faixa superior — sem legenda o título não precisa
-    reservar espaço abaixo de si.
-    """
+    """Chrome padrão: grade fina, eixos recuados, fundo do card."""
     base = {
         "height": altura,
         "font": {"family": FONTE, "size": 13, "color": TINTA_2},
         "paper_bgcolor": SUPERFICIE,
         "plot_bgcolor": SUPERFICIE,
-        # O título ocupa a faixa de cima e a legenda se acomoda abaixo dele,
-        # sem sobreposição.
-        "margin": {"l": 60, "r": 24, "t": 96 if legenda else 62, "b": 48},
-        "hoverlabel": {"font": {"family": FONTE, "size": 13}, "bgcolor": SUPERFICIE},
+        # O título ocupa a faixa de cima e a legenda se acomoda abaixo dele.
+        "margin": {"l": 56, "r": 24, "t": 88 if legenda else 56, "b": 48},
+        "hoverlabel": {
+            "font": {"family": FONTE, "size": 13, "color": TINTA},
+            "bgcolor": "#1e1e22",
+            "bordercolor": EIXO,
+        },
         "xaxis": {
             "gridcolor": GRADE, "griddash": "solid", "zeroline": False,
             "linecolor": EIXO, "tickfont": {"color": MUDO},
-            "title": {"font": {"color": TINTA_2}},
+            "title": {"font": {"color": MUDO, "size": 12}},
         },
         "yaxis": {
             "gridcolor": GRADE, "griddash": "solid", "zeroline": False,
             "linecolor": EIXO, "tickfont": {"color": MUDO},
-            "title": {"font": {"color": TINTA_2}},
+            "title": {"font": {"color": MUDO, "size": 12}},
         },
         "legend": {
             "orientation": "h", "yanchor": "bottom", "y": 1.03,
@@ -74,7 +72,7 @@ def layout_base(altura: int = 380, legenda: bool = True, **extra) -> dict:
             "font": {"color": TINTA_2}, "title": {"text": ""},
         },
         "title": {
-            "font": {"color": TINTA, "size": 16},
+            "font": {"color": TINTA, "size": 15},
             "x": 0, "xanchor": "left", "y": 0.97, "yanchor": "top",
         },
     }

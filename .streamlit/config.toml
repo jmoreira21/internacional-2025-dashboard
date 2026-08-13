@@ -1,10 +1,10 @@
 [theme]
-# Tema claro fixo: as cores dos gráficos foram validadas contra esta superfície.
-base = "light"
-primaryColor = "#2a78d6"
-backgroundColor = "#fcfcfb"
-secondaryBackgroundColor = "#f0efec"
-textColor = "#0b0b0b"
+# Tema escuro fixo: as cores dos gráficos foram validadas contra esta superfície.
+base = "dark"
+primaryColor = "#e5484d"
+backgroundColor = "#0a0a0b"
+secondaryBackgroundColor = "#141416"
+textColor = "#f5f5f4"
 font = "sans serif"
 
 [server]

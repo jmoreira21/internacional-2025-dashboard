@@ -16,25 +16,27 @@ if str(RAIZ) not in sys.path:
 
 import streamlit as st  # noqa: E402
 
-from src.dashboard import dados  # noqa: E402
+from src.dashboard import dados, estilo  # noqa: E402
 from src.dashboard.paginas import (  # noqa: E402
     artilheiros,
     chutes,
     gols,
     posicao,
+    resumo,
     rivais,
     tecnicos,
     xg,
 )
 
-PAGINAS = {
-    "Briga contra o Z4": posicao.render,
-    "Gols por rodada": gols.render,
-    "xG e eficiência": xg.render,
-    "Os três técnicos": tecnicos.render,
-    "Mapa de chutes": chutes.render,
-    "Dependência ofensiva": artilheiros.render,
-    "Rivais do Z4": rivais.render,
+ABAS = {
+    "Visão geral": resumo.render,
+    "Z4": posicao.render,
+    "Gols": gols.render,
+    "xG": xg.render,
+    "Técnicos": tecnicos.render,
+    "Chutes": chutes.render,
+    "Artilheiros": artilheiros.render,
+    "Rivais": rivais.render,
 }
 
 
@@ -43,50 +45,95 @@ def main() -> None:
         page_title="Internacional 2025",
         page_icon="⚽",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
+    estilo.aplicar_css()
 
     if not dados.banco_existe():
-        st.error("Banco não encontrado.")
-        st.markdown(
-            "Monte os dados antes de abrir o dashboard:\n\n"
-            "```bash\n"
-            "poetry run python -m src.scraper.transfermarkt\n"
-            "poetry run python -m src.scraper.wikipedia\n"
-            "poetry run python -m src.scraper.fotmob\n"
-            "poetry run python -m src.db.carga\n"
-            "```"
-        )
+        _sem_banco()
         st.stop()
 
-    with st.sidebar:
-        st.title("⚽ Internacional 2025")
-        st.caption("Por que o time brigou contra o rebaixamento")
-        escolha = st.radio("Análise", list(PAGINAS), label_visibility="collapsed")
-        st.divider()
-        _resumo_lateral()
+    _cabecalho()
+    _faixa_de_indicadores()
 
-    PAGINAS[escolha]()
+    for aba, render in zip(st.tabs(list(ABAS)), ABAS.values()):
+        with aba:
+            render()
 
 
-def _resumo_lateral() -> None:
+def _sem_banco() -> None:
+    st.error("Banco não encontrado.")
+    st.markdown(
+        "Monte os dados antes de abrir o dashboard:\n\n"
+        "```bash\n"
+        "poetry run python -m src.scraper.transfermarkt\n"
+        "poetry run python -m src.scraper.wikipedia\n"
+        "poetry run python -m src.scraper.fotmob\n"
+        "poetry run python -m src.db.carga\n"
+        "```"
+    )
+
+
+def _cabecalho() -> None:
+    esquerda, direita = st.columns([3, 1])
+    with esquerda:
+        st.markdown(
+            '<div class="titulo-clube">Sport Club Internacional</div>'
+            '<div class="titulo-temporada">Temporada <span>2025</span></div>',
+            unsafe_allow_html=True,
+        )
+    with direita:
+        st.markdown(
+            '<div style="text-align:right;padding-top:1.1rem">'
+            '<span class="rotulo">Brasileirão Série A · 38 rodadas</span></div>',
+            unsafe_allow_html=True,
+        )
+    st.write("")
+
+
+def _faixa_de_indicadores() -> None:
     tabela = dados.classificacao()
     inter = tabela.query("sigla == 'INT'").iloc[0]
     primeiro_rebaixado = tabela.query("posicao == 17").iloc[0]
     margem = int(inter.pontos) - int(primeiro_rebaixado.pontos)
+    aproveitamento = int(inter.pontos) / (int(inter.jogos) * 3)
 
-    st.metric("Posição final", f"{int(inter.posicao)}º", f"{int(inter.pontos)} pontos",
-              delta_color="off")
-    st.metric(
-        "Margem para o Z4",
-        f"{margem} ponto" + ("s" if margem != 1 else ""),
-        f"sobre o {primeiro_rebaixado.nome}",
-        delta_color="off",
-    )
-    st.caption(
-        f"{int(inter.vitorias)}V · {int(inter.empates)}E · {int(inter.derrotas)}D  |  "
-        f"{int(inter.gols_pro)}:{int(inter.gols_contra)} ({int(inter.saldo):+d})"
-    )
+    manchete, *cards = st.columns([2.4, 1, 1, 1, 1, 1.15])
+
+    with manchete:
+        st.markdown(
+            '<div class="card card-acento">'
+            '<div class="rotulo">Termômetro da temporada</div>'
+            f'<div class="manchete" style="margin-top:.5rem">{int(inter.posicao)}º lugar. '
+            f'<em>Escapou por {margem} ponto{"s" if margem != 1 else ""}.</em></div>'
+            '<div class="subtexto">O Inter terminou à frente do '
+            f'{primeiro_rebaixado.nome} por {margem} ponto'
+            f'{"s" if margem != 1 else ""} e evitou a Série B na última rodada.</div>'
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    indicadores = [
+        ("Jogos", str(int(inter.jogos)), "temporada 2025", None, False),
+        ("Vitórias", str(int(inter.vitorias)),
+         f"{100 * inter.vitorias / inter.jogos:.1f}% dos jogos", None, False),
+        ("Empates", str(int(inter.empates)),
+         f"{100 * inter.empates / inter.jogos:.1f}% dos jogos", None, False),
+        ("Derrotas", str(int(inter.derrotas)),
+         f"{100 * inter.derrotas / inter.jogos:.1f}% dos jogos", None, False),
+        ("Gols", f"{int(inter.gols_pro)} : {int(inter.gols_contra)}",
+         f"saldo {int(inter.saldo):+d}", None, False),
+        ("Aproveitamento", f"{100 * aproveitamento:.1f}%",
+         f"{int(inter.pontos)} de {int(inter.jogos) * 3} pontos", aproveitamento, True),
+    ]
+    for coluna, (rotulo, valor, nota, proporcao, vermelho) in zip(cards, indicadores):
+        with coluna:
+            st.markdown(
+                estilo.card(rotulo, valor, nota, proporcao=proporcao, vermelho=vermelho),
+                unsafe_allow_html=True,
+            )
+
+    st.write("")
 
 
 if __name__ == "__main__":

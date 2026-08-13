@@ -5,13 +5,13 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 AMOSTRA_MINIMA = 5
 
 
 def render() -> None:
-    st.header("Os três técnicos")
+    estilo.rotulo_secao("Os três técnicos")
 
     tecnicos = dados.desempenho_tecnicos()
 

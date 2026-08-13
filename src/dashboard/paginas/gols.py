@@ -5,13 +5,13 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 JANELA = 5
 
 
 def render() -> None:
-    st.header("Gols marcados e sofridos")
+    estilo.rotulo_secao("Gols marcados e sofridos")
 
     jogos = dados.jogos_do_inter().copy()
     jogos["media_pro"] = jogos.gols_pro.rolling(JANELA, min_periods=1).mean()
@@ -88,8 +88,13 @@ def _medias_moveis(jogos) -> go.Figure:
 
 
 def _saldo_por_rodada(jogos) -> go.Figure:
-    """Barra divergente: azul acima de zero, vermelho abaixo."""
-    cores = [tema.SERIE_1 if saldo > 0 else tema.CRITICO if saldo < 0 else tema.NEUTRO
+    """Barra divergente sobre o zero.
+
+    Vermelho para cima é o Inter marcando mais, azul para baixo é o adversário
+    — os mesmos papéis de cor do gráfico acima, para o leitor não ter que
+    reaprender a legenda.
+    """
+    cores = [tema.SERIE_1 if saldo > 0 else tema.SERIE_2 if saldo < 0 else tema.NEUTRO
              for saldo in jogos.saldo]
 
     figura = go.Figure(

@@ -5,14 +5,14 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 Z4_INICIO = 17
 TOTAL_TIMES = 20
 
 
 def render() -> None:
-    st.header("A briga contra o Z4")
+    estilo.rotulo_secao("A briga contra o Z4")
 
     posicoes = dados.posicoes_por_rodada()
     inter = posicoes.query("sigla == 'INT'").sort_values("rodada")
@@ -77,17 +77,19 @@ def _grafico(posicoes, inter) -> go.Figure:
         )
     )
 
+    # A faixa do Z4 fica num lavado neutro: o vermelho já é a linha do Inter, e
+    # repetir a cor faria a zona competir com o assunto do gráfico.
     figura.add_hrect(
         y0=Z4_INICIO - 0.5,
         y1=TOTAL_TIMES + 0.5,
-        fillcolor=tema.CRITICO,
-        opacity=0.07,
+        fillcolor="#ffffff",
+        opacity=0.04,
         line_width=0,
         layer="below",
     )
     figura.add_annotation(
         x=1, y=TOTAL_TIMES, text="Zona de rebaixamento", showarrow=False,
-        xanchor="left", font={"color": tema.CRITICO, "size": 12},
+        xanchor="left", font={"color": tema.MUDO, "size": 12},
     )
     figura.add_annotation(
         x=int(inter.rodada.iloc[-1]),

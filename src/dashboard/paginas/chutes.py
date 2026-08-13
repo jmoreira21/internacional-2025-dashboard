@@ -5,7 +5,7 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.dashboard import dados, tema
+from src.dashboard import dados, estilo, tema
 
 # Campo em metros, no padrão FIFA. Nos dados do FotMob o gol atacado fica em
 # x = 105 e a largura em y = 0..68.
@@ -27,7 +27,7 @@ INICIO_DO_RECORTE = 58.0
 
 
 def render() -> None:
-    st.header("Mapa de chutes")
+    estilo.rotulo_secao("Mapa de chutes")
 
     todos = dados.chutes()
     # Gols contra ficam registrados no campo de defesa e não são finalizações
