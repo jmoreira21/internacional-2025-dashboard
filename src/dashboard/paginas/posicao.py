@@ -46,6 +46,8 @@ def _grafico(posicoes, inter) -> go.Figure:
     """Ênfase: o Inter em cor, os demais recuados em cinza."""
     figura = go.Figure()
 
+    # Os 19 rivais são contexto, não séries: bem recuados, para não competir
+    # com a linha que interessa.
     for sigla, grupo in posicoes.query("sigla != 'INT'").groupby("sigla"):
         grupo = grupo.sort_values("rodada")
         figura.add_trace(
@@ -53,8 +55,8 @@ def _grafico(posicoes, inter) -> go.Figure:
                 x=grupo.rodada,
                 y=grupo.posicao,
                 mode="lines",
-                line={"color": tema.NEUTRO, "width": 1},
-                opacity=0.5,
+                line={"color": tema.NEUTRO, "width": 1, "shape": "spline"},
+                opacity=0.2,
                 hovertemplate=f"{grupo.nome.iloc[0]}<br>rodada %{{x}}: %{{y}}º<extra></extra>",
                 showlegend=False,
                 name=sigla,
@@ -70,6 +72,7 @@ def _grafico(posicoes, inter) -> go.Figure:
             marker={"size": 8, "color": tema.SERIE_1,
                     "line": {"width": 2, "color": tema.SUPERFICIE}},
             name="Internacional",
+            showlegend=False,  # série única: o título já a nomeia
             hovertemplate="Internacional<br>rodada %{x}: %{y}º<extra></extra>",
         )
     )
@@ -96,8 +99,10 @@ def _grafico(posicoes, inter) -> go.Figure:
 
     return tema.aplicar(
         figura,
+        legenda=False,
         altura=460,
-        title={"text": "Posição na tabela ao fim de cada rodada"},
+        title={"text": "Internacional: posição ao fim de cada rodada "
+                       "<span style='color:#898781'>(cinza = os outros 19 times)</span>"},
         xaxis={"title": {"text": "Rodada"}, "dtick": 4, "range": [0, 40]},
         yaxis={
             "title": {"text": "Posição"},

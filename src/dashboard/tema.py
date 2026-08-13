@@ -43,14 +43,20 @@ NEUTRO = "#c3c2b7"
 FONTE = 'system-ui, -apple-system, "Segoe UI", sans-serif'
 
 
-def layout_base(altura: int = 380, **extra) -> dict:
-    """Chrome padrão: grade fina, eixos recuados, sem moldura."""
+def layout_base(altura: int = 380, legenda: bool = True, **extra) -> dict:
+    """Chrome padrão: grade fina, eixos recuados, sem moldura.
+
+    `legenda=False` encolhe a faixa superior — sem legenda o título não precisa
+    reservar espaço abaixo de si.
+    """
     base = {
         "height": altura,
         "font": {"family": FONTE, "size": 13, "color": TINTA_2},
         "paper_bgcolor": SUPERFICIE,
         "plot_bgcolor": SUPERFICIE,
-        "margin": {"l": 60, "r": 24, "t": 48, "b": 48},
+        # O título ocupa a faixa de cima e a legenda se acomoda abaixo dele,
+        # sem sobreposição.
+        "margin": {"l": 60, "r": 24, "t": 96 if legenda else 62, "b": 48},
         "hoverlabel": {"font": {"family": FONTE, "size": 13}, "bgcolor": SUPERFICIE},
         "xaxis": {
             "gridcolor": GRADE, "griddash": "solid", "zeroline": False,
@@ -63,11 +69,14 @@ def layout_base(altura: int = 380, **extra) -> dict:
             "title": {"font": {"color": TINTA_2}},
         },
         "legend": {
-            "orientation": "h", "yanchor": "bottom", "y": 1.02,
+            "orientation": "h", "yanchor": "bottom", "y": 1.03,
             "xanchor": "left", "x": 0,
             "font": {"color": TINTA_2}, "title": {"text": ""},
         },
-        "title": {"font": {"color": TINTA, "size": 16}, "x": 0, "xanchor": "left"},
+        "title": {
+            "font": {"color": TINTA, "size": 16},
+            "x": 0, "xanchor": "left", "y": 0.97, "yanchor": "top",
+        },
     }
     for chave, valor in extra.items():
         if isinstance(valor, dict) and isinstance(base.get(chave), dict):
@@ -77,7 +86,7 @@ def layout_base(altura: int = 380, **extra) -> dict:
     return base
 
 
-def aplicar(figura, altura: int = 380, **extra):
+def aplicar(figura, altura: int = 380, legenda: bool = True, **extra):
     """Aplica o chrome padrão a uma figura Plotly."""
-    figura.update_layout(**layout_base(altura, **extra))
+    figura.update_layout(**layout_base(altura, legenda, **extra))
     return figura

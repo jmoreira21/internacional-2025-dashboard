@@ -109,11 +109,17 @@ def _deficit(times) -> go.Figure:
     )
     figura.add_vline(x=0, line={"color": tema.EIXO, "width": 1})
 
+    # Folga nas duas pontas para os rótulos externos não encostarem na borda.
+    limite_esquerdo = baixo.diferenca_pontos.min() * 1.22
+    limite_direito = max(baixo.diferenca_pontos.max() * 2.4, 2.0)
+
     return tema.aplicar(
         figura,
+        legenda=False,
         altura=360,
         title={"text": "Pontos feitos menos pontos esperados (do 14º ao 20º)"},
-        xaxis={"title": {"text": "← ficou abaixo do esperado    acima →"}},
+        xaxis={"title": {"text": "← ficou abaixo do esperado    acima →"},
+               "range": [limite_esquerdo, limite_direito]},
         yaxis={"title": {"text": ""}},
         margin={"l": 150, "r": 70},
         bargap=0.35,

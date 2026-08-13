@@ -105,6 +105,7 @@ def _saldo_por_rodada(jogos) -> go.Figure:
 
     return tema.aplicar(
         figura,
+        legenda=False,
         altura=300,
         title={"text": "Saldo de gols por rodada"},
         xaxis={"title": {"text": "Rodada"}, "dtick": 4},

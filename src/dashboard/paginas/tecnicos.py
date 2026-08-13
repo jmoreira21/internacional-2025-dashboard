@@ -77,6 +77,7 @@ def _aproveitamento(tecnicos) -> go.Figure:
 
     return tema.aplicar(
         figura,
+        legenda=False,
         altura=300,
         title={"text": "Aproveitamento de pontos por período"},
         xaxis={"title": {"text": "% dos pontos disputados"}, "range": [0, 72]},

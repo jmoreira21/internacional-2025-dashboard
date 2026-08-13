@@ -17,12 +17,23 @@ if str(RAIZ) not in sys.path:
 import streamlit as st  # noqa: E402
 
 from src.dashboard import dados  # noqa: E402
-from src.dashboard.paginas import gols, posicao, rivais, tecnicos  # noqa: E402
+from src.dashboard.paginas import (  # noqa: E402
+    artilheiros,
+    chutes,
+    gols,
+    posicao,
+    rivais,
+    tecnicos,
+    xg,
+)
 
 PAGINAS = {
     "Briga contra o Z4": posicao.render,
     "Gols por rodada": gols.render,
+    "xG e eficiência": xg.render,
     "Os três técnicos": tecnicos.render,
+    "Mapa de chutes": chutes.render,
+    "Dependência ofensiva": artilheiros.render,
     "Rivais do Z4": rivais.render,
 }
 
