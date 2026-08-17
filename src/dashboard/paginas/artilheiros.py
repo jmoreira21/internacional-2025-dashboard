@@ -10,8 +10,7 @@ from src.dashboard import dados, estilo, tema
 QUANTOS_MOSTRAR = 12
 
 
-def render() -> None:
-    estilo.rotulo_secao("Dependência ofensiva")
+def secao(numero: int) -> None:
 
     if not dados.tem_jogadores():
         st.info(
@@ -31,25 +30,21 @@ def render() -> None:
     craque = com_gol.iloc[0]
     participacoes = int(craque.gols) + int(craque.assistencias)
 
-    colunas = st.columns(4)
-    colunas[0].metric("Gols do time", total_gols)
-    colunas[1].metric("Jogadores que marcaram", len(com_gol))
-    colunas[2].metric(f"Gols de {craque.jogador}", int(craque.gols),
-                      f"{100 * craque.gols / total_gols:.0f}% do time", delta_color="off")
-    colunas[3].metric("Participações diretas", participacoes,
-                      f"{100 * participacoes / total_gols:.0f}% dos gols", delta_color="off")
-
-    st.plotly_chart(_gols_por_jogador(elenco, craque.jogador), use_container_width=True)
-
-    st.markdown(
-        f"**{craque.jogador}** participou de **{participacoes} dos {total_gols} gols** "
+    estilo.secao(
+        numero,
+        f"O ataque inteiro passava por {craque.jogador}.",
+        f"Ele participou de <strong>{participacoes} dos {total_gols} gols</strong> do time "
         f"({100 * participacoes / total_gols:.0f}%) somando gols e assistências, e foi o "
-        "único jogador do Inter a aparecer em qualquer ranking individual do campeonato "
-        "— 4º em assistências. O segundo maior artilheiro do elenco fez "
-        f"{int(com_gol.gols.iloc[1])} gols."
+        "<strong>único jogador do Inter em qualquer ranking individual do campeonato</strong> "
+        f"— 4º em assistências. O segundo maior artilheiro do elenco fez "
+        f"{int(com_gol.gols.iloc[1])} gols, menos da metade.",
     )
 
-    st.plotly_chart(_conversao(com_gol), use_container_width=True)
+    colunas = st.columns([1.3, 1], gap="medium")
+    with colunas[0]:
+        st.plotly_chart(_gols_por_jogador(elenco, craque.jogador), use_container_width=True)
+    with colunas[1]:
+        st.plotly_chart(_conversao(com_gol), use_container_width=True)
 
     with st.expander("Ver dados"):
         st.dataframe(

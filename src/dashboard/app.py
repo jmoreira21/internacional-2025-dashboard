@@ -1,5 +1,9 @@
 """Dashboard do Internacional no Brasileirão 2025.
 
+A tela é organizada como um argumento, não como um painel de monitoramento: a
+abertura apresenta o desfecho e cada seção seguinte sustenta uma afirmação sobre
+por que a temporada terminou assim, com a evidência logo abaixo.
+
 Rode com:
     poetry run streamlit run src/dashboard/app.py
 """
@@ -22,22 +26,21 @@ from src.dashboard.paginas import (  # noqa: E402
     chutes,
     gols,
     posicao,
-    resumo,
     rivais,
     tecnicos,
     xg,
 )
 
-ABAS = {
-    "Visão geral": resumo.render,
-    "Z4": posicao.render,
-    "Gols": gols.render,
-    "xG": xg.render,
-    "Técnicos": tecnicos.render,
-    "Chutes": chutes.render,
-    "Artilheiros": artilheiros.render,
-    "Rivais": rivais.render,
-}
+# A ordem é o argumento: criou bem, converteu mal, e o resto decorre disso.
+NARRATIVA = [
+    rivais.secao,       # não foi falta de criar
+    xg.secao,           # foi ineficiência nas duas pontas
+    chutes.secao,       # todos os gols saíram de dentro da área
+    gols.secao,         # fora de casa desabava
+    tecnicos.secao,     # trocar de técnico não mudou
+    artilheiros.secao,  # dependia de um jogador
+    posicao.secao,      # a conta fechou na última rodada
+]
 
 
 def main() -> None:
@@ -53,12 +56,10 @@ def main() -> None:
         _sem_banco()
         st.stop()
 
-    _cabecalho()
-    _faixa_de_indicadores()
-
-    for aba, render in zip(st.tabs(list(ABAS)), ABAS.values()):
-        with aba:
-            render()
+    _abertura()
+    for numero, secao in enumerate(NARRATIVA, start=1):
+        secao(numero)
+    _fechamento()
 
 
 def _sem_banco() -> None:
@@ -74,66 +75,65 @@ def _sem_banco() -> None:
     )
 
 
-def _cabecalho() -> None:
-    esquerda, direita = st.columns([3, 1])
+def _abertura() -> None:
+    tabela = dados.classificacao()
+    inter = tabela.query("sigla == 'INT'").iloc[0]
+    rebaixado = tabela.query("posicao == 17").iloc[0]
+    margem = int(inter.pontos) - int(rebaixado.pontos)
+    aproveitamento = int(inter.pontos) / (int(inter.jogos) * 3)
+    plural = "s" if margem != 1 else ""
+
+    st.markdown(
+        '<div class="titulo-clube">Sport Club Internacional · Brasileirão Série A</div>'
+        '<div class="titulo-temporada">Temporada <span>2025</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+
+    esquerda, direita = st.columns([1.6, 1], gap="medium")
     with esquerda:
         st.markdown(
-            '<div class="titulo-clube">Sport Club Internacional</div>'
-            '<div class="titulo-temporada">Temporada <span>2025</span></div>',
+            '<div class="card card-acento">'
+            f'<div class="manchete">O Inter terminou em {int(inter.posicao)}º e '
+            f"<em>escapou do rebaixamento por {margem} ponto{plural}</em>.</div>"
+            '<div class="subtexto">Criou chances como time de cima da tabela e converteu '
+            "como o pior do campeonato. As sete seções abaixo mostram onde a temporada "
+            "foi perdida — e onde <strong>não</strong> foi.</div>"
+            "</div>",
             unsafe_allow_html=True,
         )
     with direita:
         st.markdown(
-            '<div style="text-align:right;padding-top:1.1rem">'
-            '<span class="rotulo">Brasileirão Série A · 38 rodadas</span></div>',
-            unsafe_allow_html=True,
-        )
-    st.write("")
-
-
-def _faixa_de_indicadores() -> None:
-    tabela = dados.classificacao()
-    inter = tabela.query("sigla == 'INT'").iloc[0]
-    primeiro_rebaixado = tabela.query("posicao == 17").iloc[0]
-    margem = int(inter.pontos) - int(primeiro_rebaixado.pontos)
-    aproveitamento = int(inter.pontos) / (int(inter.jogos) * 3)
-
-    manchete, *cards = st.columns([2.4, 1, 1, 1, 1, 1.15])
-
-    with manchete:
-        st.markdown(
-            '<div class="card card-acento">'
-            '<div class="rotulo">Termômetro da temporada</div>'
-            f'<div class="manchete" style="margin-top:.5rem">{int(inter.posicao)}º lugar. '
-            f'<em>Escapou por {margem} ponto{"s" if margem != 1 else ""}.</em></div>'
-            '<div class="subtexto">O Inter terminou à frente do '
-            f'{primeiro_rebaixado.nome} por {margem} ponto'
-            f'{"s" if margem != 1 else ""} e evitou a Série B na última rodada.</div>'
-            "</div>",
+            estilo.card(
+                "Aproveitamento",
+                f"{100 * aproveitamento:.1f}%",
+                f"{int(inter.pontos)} de {int(inter.jogos) * 3} pontos · "
+                f"{int(inter.vitorias)}V {int(inter.empates)}E {int(inter.derrotas)}D · "
+                f"{int(inter.gols_pro)}:{int(inter.gols_contra)} ({int(inter.saldo):+d})",
+                proporcao=aproveitamento,
+                vermelho=True,
+            ),
             unsafe_allow_html=True,
         )
 
-    indicadores = [
-        ("Jogos", str(int(inter.jogos)), "temporada 2025", None, False),
-        ("Vitórias", str(int(inter.vitorias)),
-         f"{100 * inter.vitorias / inter.jogos:.1f}% dos jogos", None, False),
-        ("Empates", str(int(inter.empates)),
-         f"{100 * inter.empates / inter.jogos:.1f}% dos jogos", None, False),
-        ("Derrotas", str(int(inter.derrotas)),
-         f"{100 * inter.derrotas / inter.jogos:.1f}% dos jogos", None, False),
-        ("Gols", f"{int(inter.gols_pro)} : {int(inter.gols_contra)}",
-         f"saldo {int(inter.saldo):+d}", None, False),
-        ("Aproveitamento", f"{100 * aproveitamento:.1f}%",
-         f"{int(inter.pontos)} de {int(inter.jogos) * 3} pontos", aproveitamento, True),
-    ]
-    for coluna, (rotulo, valor, nota, proporcao, vermelho) in zip(cards, indicadores):
-        with coluna:
-            st.markdown(
-                estilo.card(rotulo, valor, nota, proporcao=proporcao, vermelho=vermelho),
-                unsafe_allow_html=True,
-            )
 
-    st.write("")
+def _fechamento() -> None:
+    st.markdown('<div class="secao" style="margin-bottom:1rem"></div>', unsafe_allow_html=True)
+    estilo.rotulo_secao("Fontes e ressalvas")
+    st.markdown(
+        """
+- **Partidas e classificação**: Transfermarkt e Wikipédia, reconciliados entre si —
+  as 38 partidas reproduzem a linha oficial (11V/11E/16D, 44:57, 44 pontos).
+- **xG e chutes**: FotMob, 987 finalizações com coordenadas. O FBref não publica
+  dados avançados do Brasileirão.
+- **Estatísticas por jogador**: FBref, coleta manual.
+- **Abel Braga dirigiu 2 jogos.** O percentual dele aparece com o número de jogos ao
+  lado justamente por não ser comparável aos outros dois.
+- **xG é estimativa, não verdade.** As duas agregações do próprio FotMob divergem
+  cerca de 7% na defesa; aqui usamos a soma dos chutes, que reconcilia com o placar.
+        """,
+        unsafe_allow_html=False,
+    )
 
 
 if __name__ == "__main__":

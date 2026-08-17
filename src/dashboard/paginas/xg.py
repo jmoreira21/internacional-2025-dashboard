@@ -8,30 +8,25 @@ import streamlit as st
 from src.dashboard import dados, estilo, tema
 
 
-def render() -> None:
-    estilo.rotulo_secao("xG e eficiência")
-
+def secao(numero: int) -> None:
     por_rodada = dados.xg_por_rodada().sort_values("rodada").copy()
     times = dados.xg_dos_times()
     inter = times.query("sigla == 'INT'").iloc[0]
 
-    colunas = st.columns(3)
-    colunas[0].metric("Gols marcados", int(inter.gols_pro),
-                      f"{inter.eficiencia_ataque:+.1f} vs {inter.xg:.1f} xG")
-    colunas[1].metric("Gols sofridos", int(inter.gols_contra),
-                      f"{inter.eficiencia_defesa:+.1f} vs {inter.xg_contra:.1f} xG",
-                      delta_color="inverse")
-    colunas[2].metric("Pontos", int(inter.pontos),
-                      f"{inter.diferenca_pontos:+.1f} vs {inter.pontos_esperados:.1f} esperados")
-
     posicao_ataque = int(times.eficiencia_ataque.rank()[inter.name])
     posicao_defesa = int(times.eficiencia_defesa.rank(ascending=False)[inter.name])
-    st.markdown(
-        f"O Inter foi o **{posicao_ataque}º pior finalizador** e a "
-        f"**{posicao_defesa}ª pior defesa em relação ao esperado** entre os 20 times — "
-        f"as duas pontas somam cerca de "
-        f"**{abs(inter.eficiencia_ataque) + abs(inter.eficiencia_defesa):.0f} gols** "
-        "perdidos em relação ao previsto."
+    desperdicio = abs(inter.eficiencia_ataque) + abs(inter.eficiencia_defesa)
+
+    estilo.secao(
+        numero,
+        "Foi ineficiência nas duas pontas ao mesmo tempo.",
+        f"Marcou {int(inter.gols_pro)} gols com {inter.xg:.1f} de xG e sofreu "
+        f"{int(inter.gols_contra)} com {inter.xg_contra:.1f} — o "
+        f"<strong>{posicao_ataque}º pior finalizador</strong> e a "
+        f"<strong>{posicao_defesa}ª pior defesa em relação ao esperado</strong> entre os 20 "
+        f"times. Somadas, as duas pontas custaram cerca de <strong>{desperdicio:.0f} gols</strong>. "
+        "No gráfico da esquerda, o vermelho sólido corre abaixo do tracejado e o azul sólido "
+        "corre acima: os dois buracos da temporada.",
     )
 
     st.plotly_chart(_acumulado(por_rodada), use_container_width=True)

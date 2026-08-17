@@ -95,6 +95,23 @@ CSS = f"""
   }}
   .stTabs [aria-selected="true"] {{ color: {tema.TINTA}; }}
 
+  /* --- seções da narrativa ----------------------------------------------- */
+  .secao {{
+    display: flex; align-items: baseline; gap: .9rem;
+    margin: 3.2rem 0 .35rem;
+    border-top: 1px solid {tema.BORDA}; padding-top: 1.4rem;
+  }}
+  .secao-num {{
+    font-size: .78rem; font-weight: 700; color: {tema.SERIE_1};
+    font-variant-numeric: tabular-nums; letter-spacing: .1em;
+  }}
+  .secao-tese {{ font-size: 1.42rem; font-weight: 600; color: {tema.TINTA}; line-height: 1.3; }}
+  .secao-apoio {{
+    font-size: .9rem; color: {tema.TINTA_2}; line-height: 1.6;
+    margin: 0 0 1.1rem 2.7rem; max-width: 62ch;
+  }}
+  .secao-apoio strong {{ color: {tema.TINTA}; font-weight: 600; }}
+
   /* --- diversos ---------------------------------------------------------- */
   div[data-testid="stExpander"] {{ border: 1px solid {tema.BORDA}; border-radius: 8px; }}
   hr {{ border-color: {tema.BORDA}; }}
@@ -127,3 +144,15 @@ def card(rotulo: str, valor: str, nota: str = "", *, acento: bool = False,
 
 def rotulo_secao(texto: str) -> None:
     st.markdown(f'<div class="rotulo">{texto}</div>', unsafe_allow_html=True)
+
+
+def secao(numero: int, tese: str, apoio: str) -> None:
+    """Cabeçalho de uma seção da narrativa: a afirmação e a frase que a sustenta."""
+    st.markdown(
+        f'<div class="secao">'
+        f'<span class="secao-num">{numero:02d}</span>'
+        f'<span class="secao-tese">{tese}</span>'
+        f"</div>"
+        f'<div class="secao-apoio">{apoio}</div>',
+        unsafe_allow_html=True,
+    )

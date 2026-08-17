@@ -100,9 +100,19 @@ para análise por partida, e a **tabela da temporada** apenas para comparar com 
 poetry run streamlit run src/dashboard/app.py
 ```
 
-Sete análises, uma por aba: briga contra o Z4, gols por rodada, xG e eficiência, os três
-técnicos, mapa de chutes, dependência ofensiva e comparação com os rivais da parte de baixo.
-Cada uma traz um "Ver dados" com a tabela por trás do gráfico.
+A tela é organizada como **um argumento**, não como um painel de monitoramento. A abertura dá o
+desfecho e cada seção sustenta uma afirmação com a evidência abaixo:
+
+1. Não foi falta de criar chances
+2. Foi ineficiência nas duas pontas ao mesmo tempo
+3. Todos os 44 gols saíram de dentro da área
+4. Longe do Beira-Rio, o time desabava
+5. Trocar de técnico não mudou o patamar
+6. O ataque inteiro passava por Alan Patrick
+7. A conta só fechou na última rodada
+
+Cada seção traz um "Ver dados" com a tabela por trás do gráfico, e o rodapé lista fontes e
+ressalvas.
 
 As cores saem de uma paleta validada para daltonismo (`src/dashboard/tema.py`): os três primeiros
 slots passam em todos os pares, o que é exigência das formas de dispersão, e quatro passam em pares

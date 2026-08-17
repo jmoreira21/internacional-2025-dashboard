@@ -26,62 +26,131 @@ TRAVE_ESQUERDA, TRAVE_DIREITA = 30.34, 37.66
 INICIO_DO_RECORTE = 58.0
 
 
-def render() -> None:
-    estilo.rotulo_secao("Mapa de chutes")
+TIPOS_DE_CHUTE = {
+    "RightFoot": "Pé direito",
+    "LeftFoot": "Pé esquerdo",
+    "Header": "Cabeça",
+}
 
-    todos = dados.chutes()
-    # Gols contra ficam registrados no campo de defesa e não são finalizações
-    # do Inter ao gol adversário.
-    chutes = todos.query("desfecho != 'gol contra'").copy()
 
-    situacoes = ["Todas", *sorted(chutes.situacao.dropna().unique())]
-    escolha = st.radio("Situação de jogo", situacoes, horizontal=True)
-    if escolha != "Todas":
-        chutes = chutes.query("situacao == @escolha")
+def _validos():
+    """Chutes ao gol adversário; gols contra ficam de fora.
 
-    if chutes.empty:
-        st.info("Nenhum chute nessa situação.")
-        return
+    Gols contra são registrados no campo de defesa e não são finalizações do
+    Inter.
+    """
+    return dados.chutes().query("desfecho != 'gol contra'").copy()
 
-    gols = chutes.query("desfecho == 'gol'")
+
+def secao(numero: int) -> None:
+    chutes = _validos()
     dentro = chutes.query("dentro_area == 1")
+    fora = chutes.query("dentro_area != 1")
+    gols_dentro = int((dentro.desfecho == "gol").sum())
 
-    colunas = st.columns(4)
-    colunas[0].metric("Chutes", len(chutes))
-    colunas[1].metric("Gols", len(gols))
-    colunas[2].metric("xG total", f"{chutes.xg.sum():.1f}")
-    colunas[3].metric("Dentro da área", f"{100 * len(dentro) / len(chutes):.0f}%",
-                      f"{dentro.xg.sum():.1f} xG", delta_color="off")
+    estilo.secao(
+        numero,
+        f"Todos os {gols_dentro} gols saíram de dentro da área.",
+        f"O Inter finalizou <strong>{len(fora)} vezes de fora da área</strong> e não fez "
+        f"<strong>nenhum gol</strong> assim — essas tentativas somaram apenas "
+        f"{fora.xg.sum():.1f} de xG, contra {dentro.xg.sum():.1f} das finalizações de "
+        "dentro. O time chegava à área; o que faltou foi converter lá dentro.",
+    )
 
-    st.plotly_chart(_mapa(chutes), use_container_width=True)
+    colunas = st.columns([1.4, 1], gap="medium")
+    with colunas[0]:
+        st.plotly_chart(_mapa(chutes), use_container_width=True)
+    with colunas[1]:
+        st.plotly_chart(_dentro_fora(dentro, fora), use_container_width=True)
+        st.plotly_chart(_por_tipo(chutes), use_container_width=True)
 
     fora_do_recorte = int((chutes.x < INICIO_DO_RECORTE).sum())
-    nota_recorte = (
-        f" {fora_do_recorte} chute(s) de trás do recorte não aparecem no campo, "
-        "mas estão na tabela abaixo."
-        if fora_do_recorte else ""
-    )
-    st.caption(
-        "O tamanho do ponto é o xG do chute. A área é onde o Inter finalizava — "
-        f"{100 * len(dentro) / len(chutes):.0f}% dos chutes e "
-        f"{100 * dentro.xg.sum() / chutes.xg.sum():.0f}% do xG saíram de dentro dela. "
-        "O problema não era de onde chutava." + nota_recorte
-    )
-
-    st.plotly_chart(_por_situacao(todos.query("desfecho != 'gol contra'")),
-                    use_container_width=True)
+    if fora_do_recorte:
+        st.caption(
+            f"O tamanho do ponto é o xG do chute. {fora_do_recorte} chute(s) de trás do "
+            "recorte do campo não aparecem no mapa, mas estão na tabela."
+        )
 
     with st.expander("Ver dados"):
         st.dataframe(
             chutes[["rodada", "adversario", "jogador", "minuto", "xg", "desfecho",
-                    "situacao", "tipo_chute"]]
+                    "tipo_chute", "dentro_area"]]
+            .assign(tipo_chute=lambda d: d.tipo_chute.map(TIPOS_DE_CHUTE).fillna(d.tipo_chute),
+                    dentro_area=lambda d: d.dentro_area.map({1: "dentro", 0: "fora"}))
             .rename(columns={
                 "rodada": "Rodada", "adversario": "Adversário", "jogador": "Jogador",
                 "minuto": "Min", "xg": "xG", "desfecho": "Desfecho",
-                "situacao": "Situação", "tipo_chute": "Tipo",
+                "tipo_chute": "Finalização", "dentro_area": "Área",
             }),
             hide_index=True, use_container_width=True,
         )
+
+
+def _dentro_fora(dentro, fora) -> go.Figure:
+    """O corte que qualquer um entende, no lugar das categorias cruas do FotMob."""
+    grupos = [("Fora da área", fora), ("Dentro da área", dentro)]
+    rotulos = [
+        f"{len(g)} chutes · {int((g.desfecho == 'gol').sum())} gols · {g.xg.sum():.1f} xG"
+        for _, g in grupos
+    ]
+
+    figura = go.Figure(
+        go.Bar(
+            y=[nome for nome, _ in grupos],
+            x=[len(g) for _, g in grupos],
+            orientation="h",
+            marker={"color": [tema.NEUTRO, tema.SERIE_1]},
+            text=rotulos, textposition="outside", textfont={"color": tema.TINTA_2},
+            hovertemplate="%{y}: %{x} chutes<extra></extra>",
+            showlegend=False,
+        )
+    )
+
+    return tema.aplicar(
+        figura,
+        legenda=False,
+        altura=210,
+        title={"text": "De onde saíram os gols"},
+        xaxis={"title": {"text": ""}, "range": [0, max(len(dentro), len(fora)) * 2.1],
+               "showticklabels": False},
+        yaxis={"title": {"text": ""}},
+        margin={"l": 110, "r": 20, "t": 56, "b": 20},
+        bargap=0.42,
+    )
+
+
+def _por_tipo(chutes) -> go.Figure:
+    """Pé direito, pé esquerdo e cabeça — categorias autoexplicativas."""
+    resumo = (
+        chutes.assign(tipo=chutes.tipo_chute.map(TIPOS_DE_CHUTE).fillna(chutes.tipo_chute))
+        .groupby("tipo")
+        .agg(chutes=("xg", "size"), gols=("desfecho", lambda s: (s == "gol").sum()))
+        .sort_values("chutes")
+        .reset_index()
+    )
+
+    figura = go.Figure(
+        go.Bar(
+            y=resumo.tipo, x=resumo.chutes, orientation="h",
+            marker={"color": tema.SERIE_1},
+            text=[f"{c} chutes · {g} gols" for c, g in zip(resumo.chutes, resumo.gols)],
+            textposition="outside", textfont={"color": tema.TINTA_2},
+            hovertemplate="%{y}: %{x} chutes<extra></extra>",
+            showlegend=False,
+        )
+    )
+
+    return tema.aplicar(
+        figura,
+        legenda=False,
+        altura=230,
+        title={"text": "Como finalizou"},
+        xaxis={"title": {"text": ""}, "range": [0, resumo.chutes.max() * 2.0],
+               "showticklabels": False},
+        yaxis={"title": {"text": ""}},
+        margin={"l": 110, "r": 20, "t": 56, "b": 20},
+        bargap=0.42,
+    )
 
 
 def _formas_do_campo() -> list[dict]:
@@ -152,39 +221,4 @@ def _mapa(chutes) -> go.Figure:
         yaxis={"visible": False, "range": [INICIO_DO_RECORTE - 1, COMPRIMENTO + 4],
                "scaleanchor": "x", "scaleratio": 1},
         margin={"l": 24, "r": 24, "t": 96, "b": 24},
-    )
-
-
-def _por_situacao(chutes) -> go.Figure:
-    """Categorias nominais de situação de jogo: uma cor só."""
-    resumo = (
-        chutes.groupby("situacao")
-        .agg(chutes=("xg", "size"), xg=("xg", "sum"),
-             gols=("desfecho", lambda s: (s == "gol").sum()))
-        .sort_values("chutes", ascending=True)
-        .reset_index()
-    )
-
-    figura = go.Figure(
-        go.Bar(
-            y=resumo.situacao, x=resumo.chutes, orientation="h",
-            marker={"color": tema.SERIE_1},
-            text=[f"{int(c)} chutes · {g} gols · {x:.1f} xG"
-                  for c, g, x in zip(resumo.chutes, resumo.gols, resumo.xg)],
-            textposition="outside", textfont={"color": tema.TINTA_2},
-            hovertemplate="%{y}: %{x} chutes<extra></extra>",
-            showlegend=False,
-        )
-    )
-
-    return tema.aplicar(
-        figura,
-        legenda=False,
-        altura=340,
-        title={"text": "Finalizações por situação de jogo"},
-        xaxis={"title": {"text": "Chutes"},
-               "range": [0, resumo.chutes.max() * 1.6]},
-        yaxis={"title": {"text": ""}},
-        margin={"l": 130, "r": 40},
-        bargap=0.4,
     )

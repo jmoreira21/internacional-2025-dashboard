@@ -10,35 +10,33 @@ from src.dashboard import dados, estilo, tema
 JANELA = 5
 
 
-def render() -> None:
-    estilo.rotulo_secao("Gols marcados e sofridos")
-
+def secao(numero: int) -> None:
     jogos = dados.jogos_do_inter().copy()
     jogos["media_pro"] = jogos.gols_pro.rolling(JANELA, min_periods=1).mean()
     jogos["media_contra"] = jogos.gols_contra.rolling(JANELA, min_periods=1).mean()
 
     casa = jogos.query("mando == 'casa'")
     fora = jogos.query("mando == 'fora'")
+    aproveitamento_casa = 100 * casa.pontos.sum() / (len(casa) * 3)
+    aproveitamento_fora = 100 * fora.pontos.sum() / (len(fora) * 3)
 
-    colunas = st.columns(4)
-    colunas[0].metric("Gols marcados", int(jogos.gols_pro.sum()))
-    colunas[1].metric("Gols sofridos", int(jogos.gols_contra.sum()))
-    colunas[2].metric("Aproveitamento em casa",
-                      f"{100 * casa.pontos.sum() / (len(casa) * 3):.0f}%",
-                      f"{int(casa.gols_pro.sum())}:{int(casa.gols_contra.sum())}",
-                      delta_color="off")
-    colunas[3].metric("Aproveitamento fora",
-                      f"{100 * fora.pontos.sum() / (len(fora) * 3):.0f}%",
-                      f"{int(fora.gols_pro.sum())}:{int(fora.gols_contra.sum())}",
-                      delta_color="off")
-
-    st.plotly_chart(_medias_moveis(jogos), use_container_width=True)
-    st.plotly_chart(_saldo_por_rodada(jogos), use_container_width=True)
-
-    st.caption(
-        f"Fora de casa o Inter sofreu {int(fora.gols_contra.sum())} gols em {len(fora)} jogos "
-        f"— quase o dobro dos {int(casa.gols_contra.sum())} que sofreu no Beira-Rio."
+    estilo.secao(
+        numero,
+        "Longe do Beira-Rio, o time desabava.",
+        f"Em casa o Inter fez <strong>{aproveitamento_casa:.0f}% dos pontos</strong> e sofreu "
+        f"{int(casa.gols_contra.sum())} gols. Fora, <strong>{aproveitamento_fora:.0f}%</strong> "
+        f"e <strong>{int(fora.gols_contra.sum())} gols sofridos em {len(fora)} jogos</strong> — "
+        "quase dois por partida. É a diferença que explica a maior parte dos pontos que "
+        "faltaram.",
     )
+
+    colunas = st.columns(2, gap="medium")
+    with colunas[0]:
+        st.plotly_chart(_casa_fora(casa, fora), use_container_width=True)
+    with colunas[1]:
+        st.plotly_chart(_medias_moveis(jogos), use_container_width=True)
+
+    st.plotly_chart(_saldo_por_rodada(jogos), use_container_width=True)
 
     with st.expander("Ver dados"):
         st.dataframe(
@@ -49,6 +47,38 @@ def render() -> None:
             }),
             hide_index=True, use_container_width=True,
         )
+
+
+def _casa_fora(casa, fora) -> go.Figure:
+    """Gols por jogo dentro e fora, nas mesmas cores do resto da seção."""
+    grupos = [("Em casa", casa), ("Fora", fora)]
+
+    figura = go.Figure()
+    for coluna, cor, rotulo in (
+        ("gols_pro", tema.SERIE_1, "Marcados"),
+        ("gols_contra", tema.SERIE_2, "Sofridos"),
+    ):
+        por_jogo = [g[coluna].sum() / len(g) for _, g in grupos]
+        figura.add_trace(
+            go.Bar(
+                x=[nome for nome, _ in grupos], y=por_jogo, name=rotulo,
+                marker={"color": cor, "line": {"width": 2, "color": tema.SUPERFICIE}},
+                text=[f"{v:.2f}" for v in por_jogo], textposition="outside",
+                textfont={"color": tema.TINTA_2},
+                hovertemplate=f"{rotulo}: %{{y:.2f}} por jogo<extra></extra>",
+            )
+        )
+
+    return tema.aplicar(
+        figura,
+        altura=330,
+        title={"text": "Gols por jogo, dentro e fora"},
+        xaxis={"title": {"text": ""}},
+        yaxis={"title": {"text": "Gols por jogo"}, "rangemode": "tozero", "range": [0, 2.4]},
+        barmode="group",
+        bargap=0.45,
+        bargroupgap=0.06,
+    )
 
 
 def _medias_moveis(jogos) -> go.Figure:

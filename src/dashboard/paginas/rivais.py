@@ -11,27 +11,26 @@ Z4_INICIO = 17
 PARTE_DE_BAIXO = 14
 
 
-def render() -> None:
-    estilo.rotulo_secao("Inter e os rivais da parte de baixo")
-
+def secao(numero: int) -> None:
     times = dados.xg_dos_times()
     inter = times.query("sigla == 'INT'").iloc[0]
+    posicao_esperada = int(times.pontos_esperados.rank(ascending=False)[inter.name])
 
-    colunas = st.columns(3)
-    colunas[0].metric("Pontos", int(inter.pontos),
-                      f"{inter.diferenca_pontos:+.1f} vs esperado", delta_color="off")
-    colunas[1].metric("Posição por pontos esperados",
-                      f"{int(times.pontos_esperados.rank(ascending=False)[inter.name])}º",
-                      f"{inter.pontos_esperados:.1f} xPts", delta_color="off")
-    colunas[2].metric("Posição real", f"{int(inter.posicao)}º")
-
-    st.plotly_chart(_dispersao(times), use_container_width=True)
-    st.plotly_chart(_deficit(times), use_container_width=True)
-
-    st.caption(
-        "Pelo modelo de xG, o Inter gerou o 4º maior total de pontos esperados da liga "
-        "e terminou em 16º. Nenhum outro time da parte de baixo criou tanto."
+    estilo.secao(
+        numero,
+        "Não foi falta de criar chances.",
+        f"Pelo modelo de xG, o Inter gerou o <strong>{posicao_esperada}º maior total de "
+        f"pontos esperados</strong> do campeonato — {inter.pontos_esperados:.1f} — e terminou "
+        f"em {int(inter.posicao)}º com {int(inter.pontos)} pontos. Na dispersão abaixo ele "
+        "aparece longe do grupo que caiu: criava muito mais do que os rivais da parte de "
+        "baixo.",
     )
+
+    colunas = st.columns([1.25, 1], gap="medium")
+    with colunas[0]:
+        st.plotly_chart(_dispersao(times), use_container_width=True)
+    with colunas[1]:
+        st.plotly_chart(_deficit(times), use_container_width=True)
 
     with st.expander("Ver dados"):
         st.dataframe(

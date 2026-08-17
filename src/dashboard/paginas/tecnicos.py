@@ -10,10 +10,23 @@ from src.dashboard import dados, estilo, tema
 AMOSTRA_MINIMA = 5
 
 
-def render() -> None:
-    estilo.rotulo_secao("Os três técnicos")
-
+def secao(numero: int) -> None:
     tecnicos = dados.desempenho_tecnicos()
+    estaveis = tecnicos.query("jogos >= @AMOSTRA_MINIMA")
+    diferenca = (
+        abs(estaveis.aproveitamento.iloc[0] - estaveis.aproveitamento.iloc[1])
+        if len(estaveis) >= 2 else 0.0
+    )
+
+    estilo.secao(
+        numero,
+        "Trocar de técnico não mudou o patamar.",
+        f"Roger Machado entregou {estaveis.aproveitamento.iloc[0]:.1f}% dos pontos em "
+        f"{int(estaveis.jogos.iloc[0])} jogos; Ramón Díaz, "
+        f"{estaveis.aproveitamento.iloc[1]:.1f}% em {int(estaveis.jogos.iloc[1])}. "
+        f"<strong>{diferenca:.1f} ponto percentual de diferença</strong> — ruído, não "
+        "mudança de patamar. O problema do time não estava no banco.",
+    )
 
     colunas = st.columns(len(tecnicos))
     for coluna, (_, tecnico) in zip(colunas, tecnicos.iterrows()):
@@ -38,15 +51,6 @@ def render() -> None:
         )
 
     st.plotly_chart(_gols(tecnicos), use_container_width=True)
-
-    estaveis = tecnicos.query("jogos >= @AMOSTRA_MINIMA")
-    if len(estaveis) >= 2:
-        diferenca = abs(estaveis.aproveitamento.iloc[0] - estaveis.aproveitamento.iloc[1])
-        st.caption(
-            f"Entre os dois técnicos com amostra relevante a diferença é de "
-            f"{diferenca:.1f} ponto percentual. A troca de comando não mudou o "
-            "patamar do time — o problema era outro."
-        )
 
     with st.expander("Ver dados"):
         st.dataframe(

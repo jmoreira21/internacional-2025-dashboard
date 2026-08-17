@@ -11,26 +11,23 @@ Z4_INICIO = 17
 TOTAL_TIMES = 20
 
 
-def render() -> None:
-    estilo.rotulo_secao("A briga contra o Z4")
-
+def secao(numero: int) -> None:
     posicoes = dados.posicoes_por_rodada()
     inter = posicoes.query("sigla == 'INT'").sort_values("rodada")
     rodadas_no_z4 = inter.query("posicao >= @Z4_INICIO")
+    rodadas = ", ".join(str(r) for r in rodadas_no_z4.rodada)
 
-    esquerda, meio, direita = st.columns(3)
-    esquerda.metric("Pior posição no ano", f"{int(inter.posicao.max())}º")
-    meio.metric("Rodadas dentro do Z4", len(rodadas_no_z4))
-    direita.metric("Posição final", f"{int(inter.posicao.iloc[-1])}º")
+    estilo.secao(
+        numero,
+        "A conta só fechou na última rodada.",
+        f"O Inter passou <strong>{len(rodadas_no_z4)} rodadas dentro do Z4</strong> "
+        f"(a {rodadas}) e chegou à 38ª em {int(inter.posicao.iloc[-2])}º, dentro da zona. "
+        "Precisou vencer o Bragantino por 3–1 para terminar em "
+        f"{int(inter.posicao.iloc[-1])}º. A temporada inteira de ineficiência foi resolvida "
+        "em noventa minutos — e podia não ter sido.",
+    )
 
     st.plotly_chart(_grafico(posicoes, inter), use_container_width=True)
-
-    if len(rodadas_no_z4):
-        rodadas = ", ".join(str(r) for r in rodadas_no_z4.rodada)
-        st.caption(
-            f"O Inter esteve no Z4 nas rodadas {rodadas} — e saiu na última, "
-            "vencendo o Bragantino por 3–1."
-        )
 
     with st.expander("Ver dados"):
         st.dataframe(
