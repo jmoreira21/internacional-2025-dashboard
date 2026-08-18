@@ -27,7 +27,7 @@ def secao(numero: int) -> None:
         "em noventa minutos — e podia não ter sido.",
     )
 
-    st.plotly_chart(_grafico(posicoes, inter), use_container_width=True)
+    st.plotly_chart(_grafico(inter), use_container_width=True)
 
     with st.expander("Ver dados"):
         st.dataframe(
@@ -39,26 +39,9 @@ def secao(numero: int) -> None:
         )
 
 
-def _grafico(posicoes, inter) -> go.Figure:
-    """Ênfase: o Inter em cor, os demais recuados em cinza."""
+def _grafico(inter) -> go.Figure:
+    """Só a linha do Inter: os 19 rivais tornavam o hover ilegível."""
     figura = go.Figure()
-
-    # Os 19 rivais são contexto, não séries: bem recuados, para não competir
-    # com a linha que interessa.
-    for sigla, grupo in posicoes.query("sigla != 'INT'").groupby("sigla"):
-        grupo = grupo.sort_values("rodada")
-        figura.add_trace(
-            go.Scatter(
-                x=grupo.rodada,
-                y=grupo.posicao,
-                mode="lines",
-                line={"color": tema.NEUTRO, "width": 1, "shape": "spline"},
-                opacity=0.2,
-                hovertemplate=f"{grupo.nome.iloc[0]}<br>rodada %{{x}}: %{{y}}º<extra></extra>",
-                showlegend=False,
-                name=sigla,
-            )
-        )
 
     figura.add_trace(
         go.Scatter(
@@ -100,8 +83,7 @@ def _grafico(posicoes, inter) -> go.Figure:
         figura,
         legenda=False,
         altura=460,
-        title={"text": "Internacional: posição ao fim de cada rodada "
-                       "<span style='color:#898781'>(cinza = os outros 19 times)</span>"},
+        title={"text": "Internacional: posição ao fim de cada rodada"},
         xaxis={"title": {"text": "Rodada"}, "dtick": 4, "range": [0, 40]},
         yaxis={
             "title": {"text": "Posição"},
@@ -110,5 +92,5 @@ def _grafico(posicoes, inter) -> go.Figure:
             "range": [20.5, 0.5],
             "tickvals": [1, 5, 10, 15, 17, 20],
         },
-        hovermode="x unified",
+        hovermode="closest",
     )
