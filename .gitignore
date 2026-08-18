@@ -1,6 +1,9 @@
 # Dados brutos coletados
 data/raw/
 *.db
+# Banco pronto do dashboard: versionado de propósito (temporada 2025 é estática,
+# e o Streamlit Cloud não roda os scrapers no deploy).
+!data/internacional_2025.db
 
 # Python
 __pycache__/
